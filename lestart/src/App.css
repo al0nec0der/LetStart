@@ -1,0 +1,73 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+/* --- General & Theme --- */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #121212; /* Dark background */
+  color: #e0e0e0; /* Light text */
+  padding: 2rem;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto; /* Center the main container */
+}
+
+
+/* --- Header & Search Bar --- */
+header {
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.search-bar {
+  width: 100%;
+  max-width: 600px;
+  padding: 0.8rem 1.2rem;
+  font-size: 1.1rem;
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #e0e0e0;
+}
+
+.search-bar:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+
+/* --- Main Layout for Link Sections (The Magic!) --- */
+.link-sections {
+  display: grid;
+  /* This creates a responsive grid. It makes as many 250px columns as can fit. */
+  /* On smaller screens, it will automatically become a single column. */
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem; /* The space between the grid columns and rows */
+}
+
+
+/* --- Individual Category & Links --- */
+.category h2 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #333;
+}
+
+.links a {
+  display: block; /* Makes the whole area clickable */
+  color: #b0b0b0;
+  text-decoration: none;
+  padding: 0.6rem 0.2rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.links a:hover {
+  background-color: #2a2a2a;
+  color: #ffffff;
+}
