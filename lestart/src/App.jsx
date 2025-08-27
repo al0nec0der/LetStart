@@ -1,8 +1,8 @@
+// File: lestart/src/App.jsx
 
 import { useState, useEffect } from "react";
-import { db, auth } from "./firebase"; // Import auth
+import { db, auth } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
-// Import authentication functions from Firebase
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -13,11 +13,11 @@ import "./App.css";
 
 function App() {
   const [linkData, setLinkData] = useState([]);
-  const [user, setUser] = useState(null); // New state to store the logged-in user
+  const [user, setUser] = useState(null);
 
-  // Effect for fetching links (this is your existing code)
   useEffect(() => {
     const fetchLinks = async () => {
+      // We will update this logic in the next step to fetch user-specific links
       try {
         const linksCollection = collection(db, "my_links");
         const linkSnapshot = await getDocs(linksCollection);
@@ -31,20 +31,21 @@ function App() {
       }
     };
 
-    fetchLinks();
-  }, []);
+    if (user) {
+      // Only fetch links if a user is logged in
+      fetchLinks();
+    } else {
+      setLinkData([]); // Clear links if user is logged out
+    }
+  }, [user]); // Re-run this effect when the user state changes
 
-  // New Effect to listen for authentication state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
-
-    // Cleanup subscription on component unmount
     return () => unsubscribe();
   }, []);
 
-  // New: Sign-in function
   const handleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     try {
@@ -54,7 +55,6 @@ function App() {
     }
   };
 
-  // New: Sign-out function
   const handleSignOut = async () => {
     try {
       await signOut(auth);
@@ -64,49 +64,67 @@ function App() {
   };
 
   return (
-    <div className="container">
-      {/* --- HEADER --- */}
-      <header className="app-header">
-        <input
-          type="search"
-          placeholder="Search the web..."
-          className="search-bar"
-        />
-
-        {/* --- AUTHENTICATION UI --- */}
-        <div className="auth-controls">
-          {user ? (
-            // If user is logged in, show profile pic and sign out button
-            <>
-              <img src={user.photoURL} alt="Profile" className="profile-pic" />
-              <button onClick={handleSignOut} className="auth-button">
-                Sign Out
-              </button>
-            </>
-          ) : (
-            // If user is logged out, show sign in button
-            <button onClick={handleSignIn} className="auth-button">
-              Sign In with Google
-            </button>
-          )}
+    <div className="app-layout">
+      {/* --- SIDEBAR --- */}
+      <aside className="sidebar">
+        <div className="sidebar-logo">{/* We can add a logo here later */}</div>
+        <div className="sidebar-title">
+          <span>S</span>
+          <span>T</span>
+          <span>A</span>
+          <span>R</span>
+          <span>T</span>
         </div>
-      </header>
+      </aside>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="link-sections">
-        {linkData.map((category) => (
-          <section key={category.id} className="category">
-            <h2>{category.title}</h2>
-            <div className="links">
-              {category.links.map((link, index) => (
-                <a key={index} href={link.url}>
-                  {link.name}
-                </a>
-              ))}
+      <div className="main-content">
+        <header className="main-header">
+          <input type="search" placeholder="Search..." className="search-bar" />
+          <div className="auth-controls">
+            {user ? (
+              <>
+                <button
+                  onClick={handleSignOut}
+                  className="auth-button sign-out"
+                >
+                  Sign Out
+                </button>
+                <img
+                  src={user.photoURL}
+                  alt="Profile"
+                  className="profile-pic"
+                />
+              </>
+            ) : (
+              <button onClick={handleSignIn} className="auth-button">
+                👤
+              </button>
+            )}
+          </div>
+        </header>
+
+        <main className="link-sections">
+          {user ? (
+            linkData.map((category) => (
+              <section key={category.id} className="category">
+                <h2>{category.title}</h2>
+                <div className="links">
+                  {category.links.map((link, index) => (
+                    <a key={index} href={link.url}>
+                      {link.title}
+                    </a>
+                  ))}
+                </div>
+              </section>
+            ))
+          ) : (
+            <div className="welcome-message">
+              <h1>Please sign in to view your links.</h1>
             </div>
-          </section>
-        ))}
-      </main>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

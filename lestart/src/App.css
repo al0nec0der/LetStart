@@ -1,129 +1,156 @@
+/* File: lestart/src/App.css */
+
+:root {
+  --sidebar-bg: #101010;
+  --main-bg: #181818;
+  --component-bg: #282828;
+  --border-color: #383838;
+  --text-primary: #EAEAEA;
+  --text-secondary: #B3B3B3;
+  --accent-color: #1DB954; /* A vibrant green accent */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
-/* --- General & Theme --- */
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: #121212; /* Dark background */
-  color: #e0e0e0; /* Light text */
-  padding: 2rem;
+  font-family: var(--font-sans);
+  background-color: var(--main-bg);
+  color: var(--text-primary);
 }
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto; /* Center the main container */
+/* --- Main App Layout --- */
+.app-layout {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  min-height: 100vh;
 }
 
+.sidebar {
+  background-color: var(--sidebar-bg);
+  padding: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
-/* --- Header & Search Bar --- */
-header {
+.sidebar-title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 1.2rem;
+  font-weight: bold;
+  letter-spacing: 0.5rem;
+  color: var(--text-secondary);
+  margin-top: 2rem;
+}
+
+.main-content {
+  padding: 2rem 3rem;
+  overflow-y: auto;
+}
+
+/* --- Header & Auth --- */
+.main-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
   margin-bottom: 3rem;
-  text-align: center;
 }
 
 .search-bar {
-  width: 100%;
-  max-width: 600px;
-  padding: 0.8rem 1.2rem;
-  font-size: 1.1rem;
-  background-color: #1e1e1e;
-  border: 1px solid #333;
-  border-radius: 8px;
-  color: #e0e0e0;
+  flex-grow: 1; /* Allows search bar to take available space */
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--component-bg);
+  border: 1px solid transparent;
+  border-radius: 25px; /* Pill shape */
+  color: var(--text-primary);
+  transition: border-color 0.2s;
 }
 
 .search-bar:focus {
   outline: none;
-  border-color: #4a90e2;
-}
-
-
-/* --- Main Layout for Link Sections (The Magic!) --- */
-.link-sections {
-  display: grid;
-  /* This creates a responsive grid. It makes as many 250px columns as can fit. */
-  /* On smaller screens, it will automatically become a single column. */
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem; /* The space between the grid columns and rows */
-}
-
-
-/* --- Individual Category & Links --- */
-.category h2 {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #333;
-}
-
-.links a {
-  display: block; /* Makes the whole area clickable */
-  color: #b0b0b0;
-  text-decoration: none;
-  padding: 0.6rem 0.2rem;
-  border-radius: 4px;
-  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-}
-
-.links a:hover {
-  background-color: #2a2a2a;
-  color: #ffffff;
-}
-
-/* --- New styles for Authentication --- */
-
-.app-header {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 3rem;
-  position: relative; /* Needed for positioning the auth controls */
-  flex-wrap: wrap; /* Allows items to wrap on smaller screens */
+  border-color: var(--accent-color);
 }
 
 .auth-controls {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: 1rem;
-}
-
-.profile-pic {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  margin-left: auto; /* Pushes auth to the far right */
 }
 
 .auth-button {
-  background-color: #333;
-  color: #e0e0e0;
-  border: 1px solid #555;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
+  background-color: var(--component-bg);
+  color: var(--text-primary);
+  border: none;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem; /* For the icon */
   transition: background-color 0.2s;
-  font-size: 0.9rem;
-  white-space: nowrap; /* Prevents button text from wrapping */
 }
 
 .auth-button:hover {
-  background-color: #4a90e2;
-  border-color: #4a90e2;
+  background-color: var(--accent-color);
 }
 
-/* Responsive adjustments for header */
-@media (max-width: 768px) {
-  .app-header {
-     flex-direction: column;
-     gap: 1.5rem;
-  }
-  .auth-controls {
-    position: static;
-    transform: none;
-  }
+.auth-button.sign-out {
+  width: auto;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+.profile-pic {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+}
+
+/* --- Link Sections & Welcome Message --- */
+.link-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.category h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.links a {
+  display: block;
+  color: var(--text-primary);
+  text-decoration: none;
+  padding: 0.75rem 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.links a:hover {
+  background-color: var(--component-bg);
+  color: var(--accent-color);
+}
+
+.welcome-message {
+    text-align: center;
+    margin-top: 10vh;
+    color: var(--text-secondary);
 }
