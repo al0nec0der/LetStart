@@ -42,7 +42,7 @@ function App() {
               {category.links.map((link, index) => (
 
                 <a key={index} href={link.url}>
-                  {link.title}
+                  {link.name}
                 </a>
               ))}
             </div>
