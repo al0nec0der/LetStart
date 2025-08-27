@@ -71,3 +71,59 @@ header {
   background-color: #2a2a2a;
   color: #ffffff;
 }
+
+/* --- New styles for Authentication --- */
+
+.app-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 3rem;
+  position: relative; /* Needed for positioning the auth controls */
+  flex-wrap: wrap; /* Allows items to wrap on smaller screens */
+}
+
+.auth-controls {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-pic {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.auth-button {
+  background-color: #333;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.9rem;
+  white-space: nowrap; /* Prevents button text from wrapping */
+}
+
+.auth-button:hover {
+  background-color: #4a90e2;
+  border-color: #4a90e2;
+}
+
+/* Responsive adjustments for header */
+@media (max-width: 768px) {
+  .app-header {
+     flex-direction: column;
+     gap: 1.5rem;
+  }
+  .auth-controls {
+    position: static;
+    transform: none;
+  }
+}

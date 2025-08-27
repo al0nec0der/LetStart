@@ -1,6 +1,8 @@
+// File: lestart/src/firebase.js
+
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-
+import { getAuth } from "firebase/auth"; // Import getAuth
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_apiKey,
@@ -13,4 +15,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-export { db };
+const auth = getAuth(app); // Initialize and export auth
+
+export { db, auth }; // Export both db and auth
