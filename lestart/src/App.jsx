@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { db, auth } from "./firebase";
-import { collection, getDocs, addDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  doc,
+  updateDoc,
+  arrayUnion,
+} from "firebase/firestore";
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -15,13 +22,15 @@ function App() {
   const [linkData, setLinkData] = useState([]);
   const [user, setUser] = useState(null);
   const [newCategoryTitle, setNewCategoryTitle] = useState("");
+  const [activeAddLinkForm, setActiveAddLinkForm] = useState(null); // Stores the ID of the category being edited
+  const [newLinkName, setNewLinkName] = useState("");
+  const [newLinkUrl, setNewLinkUrl] = useState("");
 
   useEffect(() => {
     const fetchLinks = async () => {
-      if (!user) return; 
+      if (!user) return;
 
       try {
-
         const linksCollection = collection(db, "users", user.uid, "links");
 
         const linkSnapshot = await getDocs(linksCollection);
@@ -62,28 +71,58 @@ function App() {
     }
   };
 
-const handleAddCategory = async (e) => {
-  e.preventDefault(); 
-  if (!user || newCategoryTitle.trim() === "") return;
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    if (!user || newCategoryTitle.trim() === "") return;
 
-  try {
-    const linksCollection = collection(db, "users", user.uid, "links");
-    const newCategoryDoc = {
-      title: newCategoryTitle,
-      links: [], // Start with an empty array of links
-    };
+    try {
+      const linksCollection = collection(db, "users", user.uid, "links");
+      const newCategoryDoc = {
+        title: newCategoryTitle,
+        links: [], // Start with an empty array of links
+      };
 
-    const docRef = await addDoc(linksCollection, newCategoryDoc);
+      const docRef = await addDoc(linksCollection, newCategoryDoc);
 
-    setLinkData([...linkData, { id: docRef.id, ...newCategoryDoc }]);
+      setLinkData([...linkData, { id: docRef.id, ...newCategoryDoc }]);
 
+      setNewCategoryTitle("");
+    } catch (error) {
+      console.error("Error adding category: ", error);
+    }
+  };
 
-    setNewCategoryTitle("");
-  } catch (error) {
-    console.error("Error adding category: ", error);
-  }
-};
+  const handleAddLink = async (e, categoryId) => {
+    e.preventDefault();
+    if (!user || newLinkName.trim() === "" || newLinkUrl.trim() === "") return;
 
+    const formattedUrl = newLinkUrl.startsWith("http")
+      ? newLinkUrl
+      : `https://${newLinkUrl}`;
+
+    const newLink = { name: newLinkName, url: formattedUrl };
+
+    try {
+      const categoryDocRef = doc(db, "users", user.uid, "links", categoryId);
+
+      await updateDoc(categoryDocRef, {
+        links: arrayUnion(newLink),
+      });
+
+      const updatedLinkData = linkData.map((category) => {
+        if (category.id === categoryId) {
+          return { ...category, links: [...category.links, newLink] };
+        }
+        return category;
+      });
+      setLinkData(updatedLinkData);
+      setNewLinkName("");
+      setNewLinkUrl("");
+      setActiveAddLinkForm(null);
+    } catch (error) {
+      console.error("Error adding link: ", error);
+    }
+  };
 
   return (
     <div className="app-layout">
@@ -144,10 +183,47 @@ const handleAddCategory = async (e) => {
             {user ? (
               linkData.map((category) => (
                 <section key={category.id} className="category">
-                  <h2>{category.title}</h2>
+                  {/* MODIFIED: Category header now includes an "Add Link" button */}
+                  <div className="category-header">
+                    <h2>{category.title}</h2>
+                    <button
+                      onClick={() => setActiveAddLinkForm(category.id)}
+                      className="add-link-button"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* NEW: Conditionally rendered form for adding a link */}
+                  {activeAddLinkForm === category.id && (
+                    <form
+                      onSubmit={(e) => handleAddLink(e, category.id)}
+                      className="add-link-form"
+                    >
+                      <input
+                        type="text"
+                        value={newLinkName}
+                        onChange={(e) => setNewLinkName(e.target.value)}
+                        placeholder="Link Name"
+                      />
+                      <input
+                        type="text"
+                        value={newLinkUrl}
+                        onChange={(e) => setNewLinkUrl(e.target.value)}
+                        placeholder="URL (e.g., google.com)"
+                      />
+                      <button type="submit">Save Link</button>
+                    </form>
+                  )}
+
                   <div className="links">
                     {category.links.map((link, index) => (
-                      <a key={index} href={link.url}>
+                      <a
+                        key={index}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         {link.name}
                       </a>
                     ))}
@@ -156,7 +232,7 @@ const handleAddCategory = async (e) => {
               ))
             ) : (
               <div className="welcome-message">
-                <h1>Please sign in to view your links.</h1>
+                {/* ... no changes here ... */}
               </div>
             )}
           </div>
