@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db, auth } from "./firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, addDoc } from "firebase/firestore";
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -14,6 +14,7 @@ import "./App.css";
 function App() {
   const [linkData, setLinkData] = useState([]);
   const [user, setUser] = useState(null);
+  const [newCategoryTitle, setNewCategoryTitle] = useState("");
 
   useEffect(() => {
     const fetchLinks = async () => {
@@ -61,6 +62,29 @@ function App() {
     }
   };
 
+const handleAddCategory = async (e) => {
+  e.preventDefault(); 
+  if (!user || newCategoryTitle.trim() === "") return;
+
+  try {
+    const linksCollection = collection(db, "users", user.uid, "links");
+    const newCategoryDoc = {
+      title: newCategoryTitle,
+      links: [], // Start with an empty array of links
+    };
+
+    const docRef = await addDoc(linksCollection, newCategoryDoc);
+
+    setLinkData([...linkData, { id: docRef.id, ...newCategoryDoc }]);
+
+
+    setNewCategoryTitle("");
+  } catch (error) {
+    console.error("Error adding category: ", error);
+  }
+};
+
+
   return (
     <div className="app-layout">
       {/* --- SIDEBAR --- */}
@@ -101,26 +125,41 @@ function App() {
             )}
           </div>
         </header>
-
-        <main className="link-sections">
-          {user ? (
-            linkData.map((category) => (
-              <section key={category.id} className="category">
-                <h2>{category.title}</h2>
-                <div className="links">
-                  {category.links.map((link, index) => (
-                    <a key={index} href={link.url}>
-                      {link.name}
-                    </a>
-                  ))}
-                </div>
-              </section>
-            ))
-          ) : (
-            <div className="welcome-message">
-              <h1>Please sign in to view your links.</h1>
-            </div>
-          )}
+        <main>
+          {user && (
+            <form onSubmit={handleAddCategory} className="add-category-form">
+              <input
+                type="text"
+                value={newCategoryTitle}
+                onChange={(e) => setNewCategoryTitle(e.target.value)}
+                placeholder="Enter new category name..."
+                className="add-category-input"
+              />
+              <button type="submit" className="add-category-button">
+                Add Category
+              </button>
+            </form>
+          )}{" "}
+          <div className="link-sections">
+            {user ? (
+              linkData.map((category) => (
+                <section key={category.id} className="category">
+                  <h2>{category.title}</h2>
+                  <div className="links">
+                    {category.links.map((link, index) => (
+                      <a key={index} href={link.url}>
+                        {link.name}
+                      </a>
+                    ))}
+                  </div>
+                </section>
+              ))
+            ) : (
+              <div className="welcome-message">
+                <h1>Please sign in to view your links.</h1>
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>
