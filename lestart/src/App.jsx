@@ -17,9 +17,12 @@ function App() {
 
   useEffect(() => {
     const fetchLinks = async () => {
-      // We will update this logic in the next step to fetch user-specific links
+      if (!user) return; 
+
       try {
-        const linksCollection = collection(db, "my_links");
+
+        const linksCollection = collection(db, "users", user.uid, "links");
+
         const linkSnapshot = await getDocs(linksCollection);
         const linksList = linkSnapshot.docs.map((doc) => ({
           id: doc.id,
@@ -31,13 +34,8 @@ function App() {
       }
     };
 
-    if (user) {
-      // Only fetch links if a user is logged in
-      fetchLinks();
-    } else {
-      setLinkData([]); // Clear links if user is logged out
-    }
-  }, [user]); // Re-run this effect when the user state changes
+    fetchLinks();
+  }, [user]); // The effect re-runs when the user logs in or out
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -67,7 +65,7 @@ function App() {
     <div className="app-layout">
       {/* --- SIDEBAR --- */}
       <aside className="sidebar">
-        <div className="sidebar-logo">{/* We can add a logo here later */}</div>
+        <div className="sidebar-logo"></div>
         <div className="sidebar-title">
           <span>S</span>
           <span>T</span>
@@ -112,7 +110,7 @@ function App() {
                 <div className="links">
                   {category.links.map((link, index) => (
                     <a key={index} href={link.url}>
-                      {link.title}
+                      {link.name}
                     </a>
                   ))}
                 </div>
