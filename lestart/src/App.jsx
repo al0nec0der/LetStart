@@ -9,6 +9,7 @@ import {
   doc,
   updateDoc,
   arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import {
   GoogleAuthProvider,
@@ -124,6 +125,28 @@ function App() {
     }
   };
 
+  const handleDeleteLink = async (categoryId, linkToDelete) => {
+    if (!user) return;
+    try {
+      const categoryDocRef = doc(db, "users", user.uid, "links", categoryId);
+      await updateDoc(categoryDocRef, {
+        links: arrayRemove(linkToDelete),
+      });
+      const updatedLinkData = linkData.map((category) => {
+        if (category.id === categoryId) {
+          const updatedLinks = category.links.filter(
+            (link) => link.url !== linkToDelete.url
+          );
+          return { ...category, links: updatedLinks };
+        }
+        return category;
+      });
+      setLinkData(updatedLinkData);
+    } catch (error) {
+      console.error("Error deleting link: ", error);
+    }
+  };
+
   return (
     <div className="app-layout">
       {/* --- SIDEBAR --- */}
@@ -218,14 +241,21 @@ function App() {
 
                   <div className="links">
                     {category.links.map((link, index) => (
-                      <a
-                        key={index}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {link.name}
-                      </a>
+                      <div key={index} className="link-item">
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {link.name}
+                        </a>
+                        <button
+                          onClick={() => handleDeleteLink(category.id, link)}
+                          className="delete-button"
+                        >
+                          X
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </section>
