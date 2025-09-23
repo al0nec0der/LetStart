@@ -23,9 +23,9 @@ function App() {
   const [linkData, setLinkData] = useState([]);
   const [user, setUser] = useState(null);
   const [newCategoryTitle, setNewCategoryTitle] = useState("");
-  const [activeAddLinkForm, setActiveAddLinkForm] = useState(null); // Stores the ID of the category being edited
-  const [newLinkName, setNewLinkName] = useState("");
-  const [newLinkUrl, setNewLinkUrl] = useState("");
+  const [activeAddLinkForms, setActiveAddLinkForms] = useState({}); // Stores the IDs of categories with active forms
+  const [newLinkName, setNewLinkName] = useState({});
+  const [newLinkUrl, setNewLinkUrl] = useState({});
 
   useEffect(() => {
     const fetchLinks = async () => {
@@ -95,13 +95,13 @@ function App() {
 
   const handleAddLink = async (e, categoryId) => {
     e.preventDefault();
-    if (!user || newLinkName.trim() === "" || newLinkUrl.trim() === "") return;
+    if (!user || !newLinkName[categoryId] || newLinkName[categoryId].trim() === "" || !newLinkUrl[categoryId] || newLinkUrl[categoryId].trim() === "") return;
 
-    const formattedUrl = newLinkUrl.startsWith("http")
-      ? newLinkUrl
-      : `https://${newLinkUrl}`;
+    const formattedUrl = newLinkUrl[categoryId].startsWith("http")
+      ? newLinkUrl[categoryId]
+      : `https://${newLinkUrl[categoryId]}`;
 
-    const newLink = { name: newLinkName, url: formattedUrl };
+    const newLink = { name: newLinkName[categoryId], url: formattedUrl };
 
     try {
       const categoryDocRef = doc(db, "users", user.uid, "links", categoryId);
@@ -117,9 +117,13 @@ function App() {
         return category;
       });
       setLinkData(updatedLinkData);
-      setNewLinkName("");
-      setNewLinkUrl("");
-      setActiveAddLinkForm(null);
+      
+      // Reset form fields for this category
+      setNewLinkName(prev => ({ ...prev, [categoryId]: "" }));
+      setNewLinkUrl(prev => ({ ...prev, [categoryId]: "" }));
+      
+      // Close the form for this category
+      setActiveAddLinkForms(prev => ({ ...prev, [categoryId]: false }));
     } catch (error) {
       console.error("Error adding link: ", error);
     }
@@ -210,7 +214,7 @@ function App() {
                   <div className="category-header">
                     <h2>{category.title}</h2>
                     <button
-                      onClick={() => setActiveAddLinkForm(category.id)}
+                      onClick={() => setActiveAddLinkForms(prev => ({ ...prev, [category.id]: !prev[category.id] }))}
                       className="add-link-button"
                     >
                       +
@@ -218,21 +222,21 @@ function App() {
                   </div>
 
                   {/* NEW: Conditionally rendered form for adding a link */}
-                  {activeAddLinkForm === category.id && (
+                  {activeAddLinkForms[category.id] && (
                     <form
                       onSubmit={(e) => handleAddLink(e, category.id)}
                       className="add-link-form"
                     >
                       <input
                         type="text"
-                        value={newLinkName}
-                        onChange={(e) => setNewLinkName(e.target.value)}
+                        value={newLinkName[category.id] || ""}
+                        onChange={(e) => setNewLinkName(prev => ({ ...prev, [category.id]: e.target.value }))}
                         placeholder="Link Name"
                       />
                       <input
                         type="text"
-                        value={newLinkUrl}
-                        onChange={(e) => setNewLinkUrl(e.target.value)}
+                        value={newLinkUrl[category.id] || ""}
+                        onChange={(e) => setNewLinkUrl(prev => ({ ...prev, [category.id]: e.target.value }))}
                         placeholder="URL (e.g., google.com)"
                       />
                       <button type="submit">Save Link</button>
@@ -241,7 +245,7 @@ function App() {
 
                   <div className="links">
                     {category.links.map((link, index) => (
-                      <div key={index} className="link-item">
+                      <div key={`${category.id}-${index}`} className="link-item">
                         <a
                           href={link.url}
                           target="_blank"
@@ -262,7 +266,11 @@ function App() {
               ))
             ) : (
               <div className="welcome-message">
-                {/* ... no changes here ... */}
+                <h1>Welcome to LinkStart</h1>
+                <p>Sign in to start organizing your links</p>
+                <button onClick={handleSignIn} className="auth-button">
+                  Sign in with Google
+                </button>
               </div>
             )}
           </div>
