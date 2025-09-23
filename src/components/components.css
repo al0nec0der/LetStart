@@ -1,0 +1,11 @@
+/* Import all component styles */
+@import './Button/Button.css';
+@import './SearchBar/SearchBar.css';
+@import './Category/Category.css';
+@import './LinkItem/LinkItem.css';
+@import './AddLinkForm/AddLinkForm.css';
+@import './Auth/Auth.css';
+@import './Header/Header.css';
+@import './Sidebar/Sidebar.css';
+@import './AddCategoryForm/AddCategoryForm.css';
+@import './Welcome/Welcome.css';
