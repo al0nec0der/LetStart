@@ -1,281 +1,154 @@
-// File: lestart/src/App.jsx
-
-import { useState, useEffect } from "react";
-import { db, auth } from "./firebase";
-import {
-  collection,
-  getDocs,
-  addDoc,
-  doc,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
-} from "firebase/firestore";
-import {
-  GoogleAuthProvider,
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged,
-} from "firebase/auth";
-import "./App.css";
+import React, { useState } from 'react';
+import { useAppContext } from './contexts/AppContext';
+import { useLinks } from './hooks/useLinks';
+import { useSearch } from './hooks/useSearch';
+import { useImportExport } from './hooks/useImportExport';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { auth, isFirebaseConfigured } from './firebase';
+import { 
+  Sidebar, 
+  Header, 
+  AddCategoryForm, 
+  Category, 
+  Welcome 
+} from './components';
+import './components/components.css';
+import './App.css';
 
 function App() {
-  const [linkData, setLinkData] = useState([]);
-  const [user, setUser] = useState(null);
-  const [newCategoryTitle, setNewCategoryTitle] = useState("");
-  const [activeAddLinkForms, setActiveAddLinkForms] = useState({}); // Stores the IDs of categories with active forms
-  const [newLinkName, setNewLinkName] = useState({});
-  const [newLinkUrl, setNewLinkUrl] = useState({});
-
-  useEffect(() => {
-    const fetchLinks = async () => {
-      if (!user) return;
-
-      try {
-        const linksCollection = collection(db, "users", user.uid, "links");
-
-        const linkSnapshot = await getDocs(linksCollection);
-        const linksList = linkSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setLinkData(linksList);
-      } catch (error) {
-        console.error("Error fetching links:", error);
-      }
-    };
-
-    fetchLinks();
-  }, [user]); // The effect re-runs when the user logs in or out
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
+  const { user, loading } = useAppContext();
+  const { links, addCategory, addLink, deleteLink, deleteCategory } = useLinks();
+  const { 
+    searchTerm, 
+    setSearchTerm, 
+    searchEngine, 
+    setSearchEngine, 
+    searchEngines, 
+    filteredItems,
+    performSearch
+  } = useSearch(links);
+  const { exportData, importData } = useImportExport();
+  const [authError, setAuthError] = useState(null);
 
   const handleSignIn = async () => {
+    // Check if Firebase is configured
+    if (!isFirebaseConfigured) {
+      setAuthError('Firebase is not properly configured. Please check your .env file.');
+      return;
+    }
+    
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      setAuthError(null);
     } catch (error) {
-      console.error("Error signing in:", error);
+      console.error('Error signing in:', error);
+      // Handle specific Firebase errors
+      if (error.code === 'auth/popup-closed-by-user') {
+        setAuthError('Sign-in popup was closed. Please try again.');
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        setAuthError('Sign-in request was cancelled. Please try again.');
+      } else if (error.code === 'auth/invalid-api-key') {
+        setAuthError('Invalid Firebase API key. Please check your configuration.');
+      } else {
+        setAuthError(`Authentication error: ${error.message}`);
+      }
     }
   };
 
   const handleSignOut = async () => {
+    if (!isFirebaseConfigured) {
+      setAuthError('Firebase is not properly configured.');
+      return;
+    }
+    
     try {
       await signOut(auth);
+      setAuthError(null);
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error('Error signing out:', error);
+      setAuthError(`Sign out error: ${error.message}`);
     }
   };
 
-  const handleAddCategory = async (e) => {
-    e.preventDefault();
-    if (!user || newCategoryTitle.trim() === "") return;
-
-    try {
-      const linksCollection = collection(db, "users", user.uid, "links");
-      const newCategoryDoc = {
-        title: newCategoryTitle,
-        links: [], // Start with an empty array of links
-      };
-
-      const docRef = await addDoc(linksCollection, newCategoryDoc);
-
-      setLinkData([...linkData, { id: docRef.id, ...newCategoryDoc }]);
-
-      setNewCategoryTitle("");
-    } catch (error) {
-      console.error("Error adding category: ", error);
-    }
+  // Handle import
+  const handleImport = (event) => {
+    importData(event);
   };
 
-  const handleAddLink = async (e, categoryId) => {
-    e.preventDefault();
-    if (!user || !newLinkName[categoryId] || newLinkName[categoryId].trim() === "" || !newLinkUrl[categoryId] || newLinkUrl[categoryId].trim() === "") return;
-
-    const formattedUrl = newLinkUrl[categoryId].startsWith("http")
-      ? newLinkUrl[categoryId]
-      : `https://${newLinkUrl[categoryId]}`;
-
-    const newLink = { name: newLinkName[categoryId], url: formattedUrl };
-
-    try {
-      const categoryDocRef = doc(db, "users", user.uid, "links", categoryId);
-
-      await updateDoc(categoryDocRef, {
-        links: arrayUnion(newLink),
-      });
-
-      const updatedLinkData = linkData.map((category) => {
-        if (category.id === categoryId) {
-          return { ...category, links: [...category.links, newLink] };
-        }
-        return category;
-      });
-      setLinkData(updatedLinkData);
-      
-      // Reset form fields for this category
-      setNewLinkName(prev => ({ ...prev, [categoryId]: "" }));
-      setNewLinkUrl(prev => ({ ...prev, [categoryId]: "" }));
-      
-      // Close the form for this category
-      setActiveAddLinkForms(prev => ({ ...prev, [categoryId]: false }));
-    } catch (error) {
-      console.error("Error adding link: ", error);
-    }
-  };
-
-  const handleDeleteLink = async (categoryId, linkToDelete) => {
-    if (!user) return;
-    try {
-      const categoryDocRef = doc(db, "users", user.uid, "links", categoryId);
-      await updateDoc(categoryDocRef, {
-        links: arrayRemove(linkToDelete),
-      });
-      const updatedLinkData = linkData.map((category) => {
-        if (category.id === categoryId) {
-          const updatedLinks = category.links.filter(
-            (link) => link.url !== linkToDelete.url
-          );
-          return { ...category, links: updatedLinks };
-        }
-        return category;
-      });
-      setLinkData(updatedLinkData);
-    } catch (error) {
-      console.error("Error deleting link: ", error);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="app">
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="app-layout">
-      {/* --- SIDEBAR --- */}
-      <aside className="sidebar">
-        <div className="sidebar-logo"></div>
-        <div className="sidebar-title">
-          <span>S</span>
-          <span>T</span>
-          <span>A</span>
-          <span>R</span>
-          <span>T</span>
-        </div>
-      </aside>
-
-      {/* --- MAIN CONTENT --- */}
-      <div className="main-content">
-        <header className="main-header">
-          <input type="search" placeholder="Search..." className="search-bar" />
-          <div className="auth-controls">
-            {user ? (
-              <>
-                <button
-                  onClick={handleSignOut}
-                  className="auth-button sign-out"
-                >
-                  Sign Out
-                </button>
-                <img
-                  src={user.photoURL}
-                  alt="Profile"
-                  className="profile-pic"
-                />
-              </>
-            ) : (
-              <button onClick={handleSignIn} className="auth-button">
-                👤
-              </button>
-            )}
-          </div>
-        </header>
-        <main>
-          {user && (
-            <form onSubmit={handleAddCategory} className="add-category-form">
-              <input
-                type="text"
-                value={newCategoryTitle}
-                onChange={(e) => setNewCategoryTitle(e.target.value)}
-                placeholder="Enter new category name..."
-                className="add-category-input"
-              />
-              <button type="submit" className="add-category-button">
-                Add Category
-              </button>
-            </form>
-          )}{" "}
-          <div className="link-sections">
-            {user ? (
-              linkData.map((category) => (
-                <section key={category.id} className="category">
-                  {/* MODIFIED: Category header now includes an "Add Link" button */}
-                  <div className="category-header">
-                    <h2>{category.title}</h2>
-                    <button
-                      onClick={() => setActiveAddLinkForms(prev => ({ ...prev, [category.id]: !prev[category.id] }))}
-                      className="add-link-button"
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  {/* NEW: Conditionally rendered form for adding a link */}
-                  {activeAddLinkForms[category.id] && (
-                    <form
-                      onSubmit={(e) => handleAddLink(e, category.id)}
-                      className="add-link-form"
-                    >
-                      <input
-                        type="text"
-                        value={newLinkName[category.id] || ""}
-                        onChange={(e) => setNewLinkName(prev => ({ ...prev, [category.id]: e.target.value }))}
-                        placeholder="Link Name"
-                      />
-                      <input
-                        type="text"
-                        value={newLinkUrl[category.id] || ""}
-                        onChange={(e) => setNewLinkUrl(prev => ({ ...prev, [category.id]: e.target.value }))}
-                        placeholder="URL (e.g., google.com)"
-                      />
-                      <button type="submit">Save Link</button>
-                    </form>
-                  )}
-
-                  <div className="links">
-                    {category.links.map((link, index) => (
-                      <div key={`${category.id}-${index}`} className="link-item">
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {link.name}
-                        </a>
-                        <button
-                          onClick={() => handleDeleteLink(category.id, link)}
-                          className="delete-button"
-                        >
-                          X
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ))
-            ) : (
-              <div className="welcome-message">
-                <h1>Welcome to LinkStart</h1>
-                <p>Sign in to start organizing your links</p>
-                <button onClick={handleSignIn} className="auth-button">
-                  Sign in with Google
-                </button>
+    <div className="app">
+      <Sidebar />
+      <div className="app-main">
+        <Header 
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          searchEngine={searchEngine}
+          setSearchEngine={setSearchEngine}
+          searchEngines={searchEngines}
+          onSearch={performSearch}
+          user={user}
+          onSignIn={handleSignIn}
+          onSignOut={handleSignOut}
+        />
+        <main className="app-content">
+          {authError && (
+            <div className="error-banner">
+              <p>{authError}</p>
+              <button onClick={() => setAuthError(null)}>Dismiss</button>
+            </div>
+          )}
+          
+          {!isFirebaseConfigured && (
+            <div className="warning-banner">
+              <p>Firebase is not configured. Please add your Firebase configuration to the .env file to enable authentication and data persistence.</p>
+            </div>
+          )}
+          
+          {user ? (
+            <>
+              <AddCategoryForm onAddCategory={addCategory} />
+              <div className="categories-grid">
+                {filteredItems.map((category) => (
+                  <Category
+                    key={category.id}
+                    category={category}
+                    onAddLink={addLink}
+                    onDeleteLink={deleteLink}
+                    onDeleteCategory={deleteCategory}
+                  />
+                ))}
               </div>
-            )}
-          </div>
+              {filteredItems.length === 0 && searchTerm && (
+                <div className="no-results">
+                  <p>No categories or links found matching "{searchTerm}"</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <Welcome onSignIn={handleSignIn} />
+          )}
         </main>
       </div>
+      {/* Hidden import input */}
+      <input 
+        type="file" 
+        id="import-input" 
+        style={{ display: 'none' }} 
+        accept=".json"
+        onChange={handleImport}
+      />
     </div>
   );
 }
